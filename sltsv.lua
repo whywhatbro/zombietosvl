@@ -1,8 +1,7 @@
--- [[ SLAP TO SURVIVE - VOID SLAP & 45° ANGLE AURA (MOBILE) ]] --
+-- [[ SLAP TO SURVIVE - FIXED NO-NPC AURA & ESP (MOBILE) ]] --
 local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
-local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 
 if CoreGui:FindFirstChild("SlapVoidHub") then
@@ -57,7 +56,7 @@ Title.Parent = MainFrame
 Title.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
 Title.Size = UDim2.new(1, 0, 0, 40)
 Title.Font = Enum.Font.GothamBold
-Title.Text = "  Slap to Survive [Void Angle Aura]"
+Title.Text = "  Slap to Survive [Clean Zombie Aura]"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.TextSize = 14
 Title.TextXAlignment = Enum.TextXAlignment.Left
@@ -110,11 +109,29 @@ local function addToggle(text, callback)
     end)
 end
 
+-- Hàm phụ trợ kiểm tra xem có phải NPC mua đồ hay không (Lọc dựa trên tên thường gặp của NPC shop)
+local function isShopNPC(model)
+    local name = model.Name:lower()
+    -- Nếu tên chứa các từ khóa shop, store, dealer, merchant, upgrade... thì bỏ qua
+    if name:find("shop") or name:find("store") or name:find("dealer") or name:find("merchant") or name:find("upgrade") or name:find("npc") then
+        return true
+    end
+    -- Kiểm tra nếu có các UI giao diện shop đính kèm trên đầu NPC
+    if model:FindFirstChild("BillboardGui") or model:FindFirstChild("ShopUI") then
+        -- Thường NPC shop đứng yên và không có trạng thái di chuyển (WalkSpeed = 0 hoặc không có script di chuyển)
+        local hum = model:FindFirstChild("Humanoid")
+        if hum and hum.WalkSpeed == 0 then
+            return true
+        end
+    end
+    return false
+end
+
 local voidAura = false
 local floatAbove = false
 local espEnabled = false
 
--- 1. Void Angle Aura (Bay trên đầu, nhìn xuống 45° và đẩy zombie xuống vực)
+-- 1. Void Angle Aura (Chỉ nhắm vào Zombie, bỏ qua NPC Shop)
 addToggle("Void Angle Aura (Tát hất xuống vực)", function(state)
     voidAura = state
 end)
@@ -129,26 +146,26 @@ task.spawn(function()
                 
                 for _, v in ipairs(Workspace:GetDescendants()) do
                     if v:IsA("Model") and v ~= char and v:FindFirstChild("Humanoid") and v:FindFirstChild("HumanoidRootPart") then
-                        if not Players:GetPlayerFromCharacter(v) then
+                        -- Không phải người chơi và không phải NPC Shop
+                        if not Players:GetPlayerFromCharacter(v) and not isShopNPC(v) then
                             local humanoid = v.Humanoid
                             local targetHrp = v.HumanoidRootPart
                             
                             if targetHrp.Position.Y > -50 and humanoid.Health > 0 then
-                                -- Dịch chuyển nhân vật bay lên cao hơn đầu zombie 1 đoạn (ví dụ cao hơn 8 studs) 
-                                -- và hướng mặt cúi xuống góc 45 độ so với vị trí của zombie
+                                -- Dịch chuyển lơ lửng trên đầu zombie 8 studs, hướng mặt xuống 45 độ
                                 local targetPos = targetHrp.Position + Vector3.new(0, 8, 0)
                                 hrp.CFrame = CFrame.new(targetPos, targetHrp.Position) * CFrame.Angles(math.rad(45), 0, 0)
                                 
-                                -- Kích hoạt tool tát liên tục
+                                -- Kích hoạt công cụ tát
                                 if tool then
                                     pcall(function()
                                         tool:Activate()
                                     end)
                                 end
                                 
-                                -- Tác động lực đẩy văng xuống dưới (Downward Force) để phụ thêm lực hất vào void
+                                -- Thêm lực ép cắm xuống vực
                                 pcall(function()
-                                    targetHrp.Velocity = Vector3.new(0, -150, 0) -- Ép vận tốc zombie cắm xuống đất/vực
+                                    targetHrp.Velocity = Vector3.new(0, -180, 0)
                                 end)
                                 
                                 task.wait(0.1)
@@ -163,7 +180,7 @@ task.spawn(function()
     end
 end)
 
--- 2. Chế độ Bay trên đầu an toàn (Float Above)
+-- 2. Chế độ Bay trên đầu an toàn
 addToggle("Float Above (Bay lơ lửng trên không)", function(state)
     floatAbove = state
     local char = LocalPlayer.Character
@@ -183,23 +200,25 @@ addToggle("Float Above (Bay lơ lửng trên không)", function(state)
     end
 end)
 
--- 3. Zombie ESP
-addToggle("Monsters ESP (Nhìn xuyên tường)", function(state)
+-- 3. Zombie ESP (Chỉ tô màu quái, bỏ qua NPC)
+addToggle("Zombies ESP (Nhìn xuyên tường)", function(state)
     espEnabled = state
     for _, v in ipairs(Workspace:GetDescendants()) do
         if v:IsA("Model") and v ~= LocalPlayer.Character and v:FindFirstChild("Humanoid") and not Players:GetPlayerFromCharacter(v) then
-            local existing = v:FindFirstChild("ZESP")
-            if state and not existing then
-                local hl = Instance.new("Highlight")
-                hl.Name = "ZESP"
-                hl.Adornee = v
-                hl.FillColor = Color3.fromRGB(255, 69, 0)
-                hl.Parent = v
-            elseif not state and existing then
-                existing:Destroy()
+            if not isShopNPC(v) then
+                local existing = v:FindFirstChild("ZESP")
+                if state and not existing then
+                    local hl = Instance.new("Highlight")
+                    hl.Name = "ZESP"
+                    hl.Adornee = v
+                    hl.FillColor = Color3.fromRGB(255, 69, 0)
+                    hl.Parent = v
+                elseif not state and existing then
+                    existing:Destroy()
+                end
             end
         end
     end
 end)
 
-print("Đã kích hoạt Void Angle Aura cho Slap to Survive!")
+print("Đã cập nhật bộ lọc chống nhầm NPC Shop thành công!")
