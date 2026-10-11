@@ -1,4 +1,4 @@
--- [[ SLAP TO SURVIVE - FIXED NO-NPC AURA & ESP (MOBILE) ]] --
+-- [[ SLAP TO SURVIVE - ULTRA CLEAN ZOMBIE AURA (MOBILE) ]] --
 local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
@@ -56,7 +56,7 @@ Title.Parent = MainFrame
 Title.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
 Title.Size = UDim2.new(1, 0, 0, 40)
 Title.Font = Enum.Font.GothamBold
-Title.Text = "  Slap to Survive [Clean Zombie Aura]"
+Title.Text = "  Slap to Survive [Ultra Clean Aura]"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.TextSize = 14
 Title.TextXAlignment = Enum.TextXAlignment.Left
@@ -109,30 +109,42 @@ local function addToggle(text, callback)
     end)
 end
 
--- Hàm phụ trợ kiểm tra xem có phải NPC mua đồ hay không (Lọc dựa trên tên thường gặp của NPC shop)
-local function isShopNPC(model)
+-- Bộ lọc thông minh nâng cao: Loại bỏ hoàn toàn NPC Shop, hình nộm trang trí hoặc người chơi khác
+local function isValidZombie(model)
+    if not model:IsA("Model") then return false end
+    if model == LocalPlayer.Character then return false end
+    if Players:GetPlayerFromCharacter(model) then return false end
+    
+    local humanoid = model:FindFirstChild("Humanoid")
+    local hrp = model:FindFirstChild("HumanoidRootPart")
+    if not humanoid or not hrp then return false end
+
     local name = model.Name:lower()
-    -- Nếu tên chứa các từ khóa shop, store, dealer, merchant, upgrade... thì bỏ qua
-    if name:find("shop") or name:find("store") or name:find("dealer") or name:find("merchant") or name:find("upgrade") or name:find("npc") then
-        return true
+    
+    -- Chặn các từ khóa liên quan đến shop, npc, dummy, trang trí
+    if name:find("shop") or name:find("store") or name:find("dealer") or name:find("merchant") or name:find("npc") or name:find("dummy") or name:find("quest") then
+        return false
     end
-    -- Kiểm tra nếu có các UI giao diện shop đính kèm trên đầu NPC
-    if model:FindFirstChild("BillboardGui") or model:FindFirstChild("ShopUI") then
-        -- Thường NPC shop đứng yên và không có trạng thái di chuyển (WalkSpeed = 0 hoặc không có script di chuyển)
-        local hum = model:FindFirstChild("Humanoid")
-        if hum and hum.WalkSpeed == 0 then
-            return true
-        end
+
+    -- Kiểm tra nếu đối tượng đứng bất động cố định ở khu vực quầy shop (dựa theo chiều cao hoặc các thành phần UI shop)
+    if model:FindFirstChild("ShopUI") or model:FindFirstChild("BillboardGui") or humanoid.WalkSpeed == 0 then
+        return false
     end
-    return false
+
+    -- Chỉ nhận quái có thanh máu hợp lệ và nằm ở trên sàn đấu/khu vực chơi
+    if humanoid.Health <= 0 or hrp.Position.Y < -50 then
+        return false
+    end
+
+    return true
 end
 
 local voidAura = false
 local floatAbove = false
 local espEnabled = false
 
--- 1. Void Angle Aura (Chỉ nhắm vào Zombie, bỏ qua NPC Shop)
-addToggle("Void Angle Aura (Tát hất xuống vực)", function(state)
+-- 1. Ultra Clean Void Aura
+addToggle("Ultra Void Aura (Chỉ tát đúng Zombie)", function(state)
     voidAura = state
 end)
 
@@ -145,33 +157,28 @@ task.spawn(function()
                 local tool = char:FindFirstChildOfClass("Tool")
                 
                 for _, v in ipairs(Workspace:GetDescendants()) do
-                    if v:IsA("Model") and v ~= char and v:FindFirstChild("Humanoid") and v:FindFirstChild("HumanoidRootPart") then
-                        -- Không phải người chơi và không phải NPC Shop
-                        if not Players:GetPlayerFromCharacter(v) and not isShopNPC(v) then
-                            local humanoid = v.Humanoid
-                            local targetHrp = v.HumanoidRootPart
-                            
-                            if targetHrp.Position.Y > -50 and humanoid.Health > 0 then
-                                -- Dịch chuyển lơ lửng trên đầu zombie 8 studs, hướng mặt xuống 45 độ
-                                local targetPos = targetHrp.Position + Vector3.new(0, 8, 0)
-                                hrp.CFrame = CFrame.new(targetPos, targetHrp.Position) * CFrame.Angles(math.rad(45), 0, 0)
-                                
-                                -- Kích hoạt công cụ tát
-                                if tool then
-                                    pcall(function()
-                                        tool:Activate()
-                                    end)
-                                end
-                                
-                                -- Thêm lực ép cắm xuống vực
-                                pcall(function()
-                                    targetHrp.Velocity = Vector3.new(0, -180, 0)
-                                end)
-                                
-                                task.wait(0.1)
-                                break
-                            end
+                    if v:IsA("Model") and isValidZombie(v) then
+                        local targetHrp = v.HumanoidRootPart
+                        local humanoid = v.Humanoid
+                        
+                        -- Dịch chuyển lơ lửng trên đầu zombie thật, hướng mặt xuống 45 độ
+                        local targetPos = targetHrp.Position + Vector3.new(0, 8, 0)
+                        hrp.CFrame = CFrame.new(targetPos, targetHrp.Position) * CFrame.Angles(math.rad(45), 0, 0)
+                        
+                        -- Kích hoạt tool tát
+                        if tool then
+                            pcall(function()
+                                tool:Activate()
+                            end)
                         end
+                        
+                        -- Ép lực đẩy cắm xuống vực
+                        pcall(function()
+                            targetHrp.Velocity = Vector3.new(0, -180, 0)
+                        end)
+                        
+                        task.wait(0.1)
+                        break
                     end
                 end
             end
@@ -200,25 +207,23 @@ addToggle("Float Above (Bay lơ lửng trên không)", function(state)
     end
 end)
 
--- 3. Zombie ESP (Chỉ tô màu quái, bỏ qua NPC)
-addToggle("Zombies ESP (Nhìn xuyên tường)", function(state)
+-- 3. ESP chuẩn xác chỉ nhận Zombie
+addToggle("Zombies ESP (Chỉ tô màu quái)", function(state)
     espEnabled = state
     for _, v in ipairs(Workspace:GetDescendants()) do
-        if v:IsA("Model") and v ~= LocalPlayer.Character and v:FindFirstChild("Humanoid") and not Players:GetPlayerFromCharacter(v) then
-            if not isShopNPC(v) then
-                local existing = v:FindFirstChild("ZESP")
-                if state and not existing then
-                    local hl = Instance.new("Highlight")
-                    hl.Name = "ZESP"
-                    hl.Adornee = v
-                    hl.FillColor = Color3.fromRGB(255, 69, 0)
-                    hl.Parent = v
-                elseif not state and existing then
-                    existing:Destroy()
-                end
+        if isValidZombie(v) then
+            local existing = v:FindFirstChild("ZESP")
+            if state and not existing then
+                local hl = Instance.new("Highlight")
+                hl.Name = "ZESP"
+                hl.Adornee = v
+                hl.FillColor = Color3.fromRGB(255, 69, 0)
+                hl.Parent = v
+            elseif not state and existing then
+                existing:Destroy()
             end
         end
     end
 end)
 
-print("Đã cập nhật bộ lọc chống nhầm NPC Shop thành công!")
+print("Đã cập nhật bộ lọc Ultra Clean thành công!")
