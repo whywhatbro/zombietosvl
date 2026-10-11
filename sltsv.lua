@@ -1,23 +1,24 @@
--- [[ SLAP TO SURVIVE - FIXED HITBOX AURA (MOBILE) ]] --
+-- [[ SLAP TO SURVIVE - VOID SLAP & 45° ANGLE AURA (MOBILE) ]] --
 local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 
-if CoreGui:FindFirstChild("SlapMobileHub") then
-    CoreGui.SlapMobileHub:Destroy()
+if CoreGui:FindFirstChild("SlapVoidHub") then
+    CoreGui.SlapVoidHub:Destroy()
 end
 
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "SlapMobileHub"
+ScreenGui.Name = "SlapVoidHub"
 ScreenGui.Parent = CoreGui
 ScreenGui.ResetOnSpawn = false
 
--- Nút mở/đóng menu trên mobile
+-- Nút nổi mở/đóng menu trên mobile
 local ToggleMenuBtn = Instance.new("TextButton")
 ToggleMenuBtn.Name = "ToggleMenuBtn"
 ToggleMenuBtn.Parent = ScreenGui
-ToggleMenuBtn.BackgroundColor3 = Color3.fromRGB(30, 144, 255)
+ToggleMenuBtn.BackgroundColor3 = Color3.fromRGB(255, 69, 0)
 ToggleMenuBtn.Position = UDim2.new(0.02, 0, 0.4, 0)
 ToggleMenuBtn.Size = UDim2.new(0, 50, 0, 50)
 ToggleMenuBtn.Font = Enum.Font.GothamBold
@@ -36,8 +37,8 @@ local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Parent = ScreenGui
 MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
-MainFrame.Position = UDim2.new(0.5, -175, 0.5, -130)
-MainFrame.Size = UDim2.new(0, 350, 0, 260)
+MainFrame.Position = UDim2.new(0.5, -175, 0.5, -140)
+MainFrame.Size = UDim2.new(0, 350, 0, 280)
 MainFrame.Active = true
 MainFrame.Draggable = true
 
@@ -56,7 +57,7 @@ Title.Parent = MainFrame
 Title.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
 Title.Size = UDim2.new(1, 0, 0, 40)
 Title.Font = Enum.Font.GothamBold
-Title.Text = "  Slap to Survive [Fixed Hitbox Aura]"
+Title.Text = "  Slap to Survive [Void Angle Aura]"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.TextSize = 14
 Title.TextXAlignment = Enum.TextXAlignment.Left
@@ -109,45 +110,49 @@ local function addToggle(text, callback)
     end)
 end
 
-local hitboxAura = false
-local floatMode = false
+local voidAura = false
+local floatAbove = false
 local espEnabled = false
 
--- 1. Fixed Hitbox Aura (Kéo thẳng phần Hitbox vật lý vào vị trí người chơi)
-addToggle("Fixed Hitbox Aura (Hút chuẩn hitbox)", function(state)
-    hitboxAura = state
+-- 1. Void Angle Aura (Bay trên đầu, nhìn xuống 45° và đẩy zombie xuống vực)
+addToggle("Void Angle Aura (Tát hất xuống vực)", function(state)
+    voidAura = state
 end)
 
 task.spawn(function()
     while true do
-        if hitboxAura then
+        if voidAura then
             local char = LocalPlayer.Character
             if char and char:FindFirstChild("HumanoidRootPart") then
                 local hrp = char.HumanoidRootPart
                 local tool = char:FindFirstChildOfClass("Tool")
                 
                 for _, v in ipairs(Workspace:GetDescendants()) do
-                    if v.Name == "HumanoidRootPart" and v.Parent ~= char then
-                        local model = v.Parent
-                        if model and model:FindFirstChild("Humanoid") then
-                            if not Players:GetPlayerFromCharacter(model) then
-                                local humanoid = model.Humanoid
-                                if v.Position.Y > -50 and humanoid.Health > 0 then
-                                    -- Ép buộc dịch chuyển trực tiếp HRP (Hitbox thật) của zombie dính sát vào mặt bạn
-                                    v.CFrame = hrp.CFrame * CFrame.new(0, 0, -3)
-                                    
-                                    -- Kích hoạt công cụ tát để găng tay nhận diện va chạm với hitbox vừa kéo tới
-                                    if tool then
-                                        pcall(function()
-                                            tool:Activate()
-                                        end)
-                                    end
-                                    
-                                    -- Phòng hờ game chống gian lận gắt, kết hợp trừ máu trực tiếp nếu hitbox chạm nhưng chưa chết
+                    if v:IsA("Model") and v ~= char and v:FindFirstChild("Humanoid") and v:FindFirstChild("HumanoidRootPart") then
+                        if not Players:GetPlayerFromCharacter(v) then
+                            local humanoid = v.Humanoid
+                            local targetHrp = v.HumanoidRootPart
+                            
+                            if targetHrp.Position.Y > -50 and humanoid.Health > 0 then
+                                -- Dịch chuyển nhân vật bay lên cao hơn đầu zombie 1 đoạn (ví dụ cao hơn 8 studs) 
+                                -- và hướng mặt cúi xuống góc 45 độ so với vị trí của zombie
+                                local targetPos = targetHrp.Position + Vector3.new(0, 8, 0)
+                                hrp.CFrame = CFrame.new(targetPos, targetHrp.Position) * CFrame.Angles(math.rad(45), 0, 0)
+                                
+                                -- Kích hoạt tool tát liên tục
+                                if tool then
                                     pcall(function()
-                                        humanoid:TakeDamage(50)
+                                        tool:Activate()
                                     end)
                                 end
+                                
+                                -- Tác động lực đẩy văng xuống dưới (Downward Force) để phụ thêm lực hất vào void
+                                pcall(function()
+                                    targetHrp.Velocity = Vector3.new(0, -150, 0) -- Ép vận tốc zombie cắm xuống đất/vực
+                                end)
+                                
+                                task.wait(0.1)
+                                break
                             end
                         end
                     end
@@ -158,13 +163,13 @@ task.spawn(function()
     end
 end)
 
--- 2. Chế độ Bay lơ lửng (Float Mode)
-addToggle("Float Mode (Bay né zombie)", function(state)
-    floatMode = state
+-- 2. Chế độ Bay trên đầu an toàn (Float Above)
+addToggle("Float Above (Bay lơ lửng trên không)", function(state)
+    floatAbove = state
     local char = LocalPlayer.Character
     if char and char:FindFirstChild("HumanoidRootPart") then
         local hrp = char.HumanoidRootPart
-        if floatMode then
+        if floatAbove then
             local bv = Instance.new("BodyVelocity")
             bv.Name = "CustomFloatVelocity"
             bv.Parent = hrp
@@ -179,7 +184,7 @@ addToggle("Float Mode (Bay né zombie)", function(state)
 end)
 
 -- 3. Zombie ESP
-addToggle("Zombie ESP (Nhìn xuyên tường)", function(state)
+addToggle("Monsters ESP (Nhìn xuyên tường)", function(state)
     espEnabled = state
     for _, v in ipairs(Workspace:GetDescendants()) do
         if v:IsA("Model") and v ~= LocalPlayer.Character and v:FindFirstChild("Humanoid") and not Players:GetPlayerFromCharacter(v) then
@@ -188,7 +193,7 @@ addToggle("Zombie ESP (Nhìn xuyên tường)", function(state)
                 local hl = Instance.new("Highlight")
                 hl.Name = "ZESP"
                 hl.Adornee = v
-                hl.FillColor = Color3.fromRGB(255, 30, 30)
+                hl.FillColor = Color3.fromRGB(255, 69, 0)
                 hl.Parent = v
             elseif not state and existing then
                 existing:Destroy()
@@ -197,4 +202,4 @@ addToggle("Zombie ESP (Nhìn xuyên tường)", function(state)
     end
 end)
 
-print("Đã cập nhật Fixed Hitbox Aura thành công!")
+print("Đã kích hoạt Void Angle Aura cho Slap to Survive!")
