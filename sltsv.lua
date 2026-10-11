@@ -1,8 +1,7 @@
--- [[ SLAP TO SURVIVE - REAL FULL MAP AURA (MOBILE) ]] --
+-- [[ SLAP TO SURVIVE - FIXED HITBOX AURA (MOBILE) ]] --
 local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
 
 if CoreGui:FindFirstChild("SlapMobileHub") then
@@ -14,7 +13,7 @@ ScreenGui.Name = "SlapMobileHub"
 ScreenGui.Parent = CoreGui
 ScreenGui.ResetOnSpawn = false
 
--- Nút nổi mở/đóng menu trên mobile
+-- Nút mở/đóng menu trên mobile
 local ToggleMenuBtn = Instance.new("TextButton")
 ToggleMenuBtn.Name = "ToggleMenuBtn"
 ToggleMenuBtn.Parent = ScreenGui
@@ -57,7 +56,7 @@ Title.Parent = MainFrame
 Title.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
 Title.Size = UDim2.new(1, 0, 0, 40)
 Title.Font = Enum.Font.GothamBold
-Title.Text = "  Slap to Survive [Fixed Aura]"
+Title.Text = "  Slap to Survive [Fixed Hitbox Aura]"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.TextSize = 14
 Title.TextXAlignment = Enum.TextXAlignment.Left
@@ -110,38 +109,43 @@ local function addToggle(text, callback)
     end)
 end
 
-local fullMapAura = false
+local hitboxAura = false
 local floatMode = false
 local espEnabled = false
 
--- 1. Real Full Map Aura (Đã fix lỗi bắt buộc phải chạy đến gần)
-addToggle("Real Full Map Aura (Tát từ xa)", function(state)
-    fullMapAura = state
+-- 1. Fixed Hitbox Aura (Kéo thẳng phần Hitbox vật lý vào vị trí người chơi)
+addToggle("Fixed Hitbox Aura (Hút chuẩn hitbox)", function(state)
+    hitboxAura = state
 end)
 
 task.spawn(function()
     while true do
-        if fullMapAura then
+        if hitboxAura then
             local char = LocalPlayer.Character
             if char and char:FindFirstChild("HumanoidRootPart") then
                 local hrp = char.HumanoidRootPart
                 local tool = char:FindFirstChildOfClass("Tool")
                 
                 for _, v in ipairs(Workspace:GetDescendants()) do
-                    if v.Name == "HumanoidRootPart" then
+                    if v.Name == "HumanoidRootPart" and v.Parent ~= char then
                         local model = v.Parent
-                        if model and model:FindFirstChild("Humanoid") and model ~= char then
+                        if model and model:FindFirstChild("Humanoid") then
                             if not Players:GetPlayerFromCharacter(model) then
-                                if v.Position.Y > -50 and model.Humanoid.Health > 0 then
-                                    -- Cải tiến: Kéo tâm/vũ khí hoặc dịch chuyển phần va chạm tạm thời của tool để đánh tới mọi khoảng cách
+                                local humanoid = model.Humanoid
+                                if v.Position.Y > -50 and humanoid.Health > 0 then
+                                    -- Ép buộc dịch chuyển trực tiếp HRP (Hitbox thật) của zombie dính sát vào mặt bạn
+                                    v.CFrame = hrp.CFrame * CFrame.new(0, 0, -3)
+                                    
+                                    -- Kích hoạt công cụ tát để găng tay nhận diện va chạm với hitbox vừa kéo tới
                                     if tool then
-                                        tool:Activate()
+                                        pcall(function()
+                                            tool:Activate()
+                                        end)
                                     end
                                     
-                                    -- Ép sát sát thương bằng cách kéo zombie lại gần tầm tát nếu game check khoảng cách chặt
-                                    -- (Giúp đánh quái bất kể xa gần mà không bị lỗi khựng)
+                                    -- Phòng hờ game chống gian lận gắt, kết hợp trừ máu trực tiếp nếu hitbox chạm nhưng chưa chết
                                     pcall(function()
-                                        model.HumanoidRootPart.CFrame = hrp.CFrame * CFrame.new(0, 0, -4)
+                                        humanoid:TakeDamage(50)
                                     end)
                                 end
                             end
@@ -150,7 +154,7 @@ task.spawn(function()
                 end
             end
         end
-        task.wait(0.2)
+        task.wait(0.15)
     end
 end)
 
@@ -193,4 +197,4 @@ addToggle("Zombie ESP (Nhìn xuyên tường)", function(state)
     end
 end)
 
-print("Đã cập nhật tính năng Aura toàn map thực thụ!")
+print("Đã cập nhật Fixed Hitbox Aura thành công!")
