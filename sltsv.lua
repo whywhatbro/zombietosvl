@@ -1,10 +1,10 @@
--- [[ SLAP TO SURVIVE - MOBILE UI HUB ]] --
+-- [[ SLAP TO SURVIVE - REAL FULL MAP AURA (MOBILE) ]] --
 local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
 
--- Xóa UI cũ nếu có
 if CoreGui:FindFirstChild("SlapMobileHub") then
     CoreGui.SlapMobileHub:Destroy()
 end
@@ -14,7 +14,7 @@ ScreenGui.Name = "SlapMobileHub"
 ScreenGui.Parent = CoreGui
 ScreenGui.ResetOnSpawn = false
 
--- 1. Nút mở/đóng menu nổi trên màn hình điện thoại
+-- Nút nổi mở/đóng menu trên mobile
 local ToggleMenuBtn = Instance.new("TextButton")
 ToggleMenuBtn.Name = "ToggleMenuBtn"
 ToggleMenuBtn.Parent = ScreenGui
@@ -29,10 +29,10 @@ ToggleMenuBtn.Active = true
 ToggleMenuBtn.Draggable = true
 
 local ToggleCorner = Instance.new("UICorner")
-ToggleCorner.CornerRadius = UDim.new(1, 0) -- Bo tròn hình tròn
+ToggleCorner.CornerRadius = UDim.new(1, 0)
 ToggleCorner.Parent = ToggleMenuBtn
 
--- 2. Khung Menu Chính
+-- Khung Menu Chính
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Parent = ScreenGui
@@ -46,20 +46,18 @@ local MainCorner = Instance.new("UICorner")
 MainCorner.CornerRadius = UDim.new(0, 12)
 MainCorner.Parent = MainFrame
 
--- Sự kiện bấm nút nổi để ẩn/hiện menu
 local menuVisible = true
 ToggleMenuBtn.MouseButton1Click:Connect(function()
     menuVisible = not menuVisible
     MainFrame.Visible = menuVisible
 end)
 
--- Tiêu đề
 local Title = Instance.new("TextLabel")
 Title.Parent = MainFrame
 Title.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
 Title.Size = UDim2.new(1, 0, 0, 40)
 Title.Font = Enum.Font.GothamBold
-Title.Text = "  Slap to Survive [Mobile Hub]"
+Title.Text = "  Slap to Survive [Fixed Aura]"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.TextSize = 14
 Title.TextXAlignment = Enum.TextXAlignment.Left
@@ -68,7 +66,6 @@ local TitleCorner = Instance.new("UICorner")
 TitleCorner.CornerRadius = UDim.new(0, 12)
 TitleCorner.Parent = Title
 
--- Container chứa các tính năng
 local Container = Instance.new("ScrollingFrame")
 Container.Parent = MainFrame
 Container.BackgroundTransparency = 1
@@ -82,7 +79,6 @@ UIListLayout.Parent = Container
 UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 UIListLayout.Padding = UDim.new(0, 10)
 
--- Hàm tạo nút bấm tính năng (Được làm to ra dễ chạm trên màn hình cảm ứng)
 local function addToggle(text, callback)
     local Btn = Instance.new("TextButton")
     Btn.Parent = Container
@@ -114,32 +110,39 @@ local function addToggle(text, callback)
     end)
 end
 
--- Trạng thái tính năng
-local safeAura = false
+local fullMapAura = false
 local floatMode = false
 local espEnabled = false
 
--- 1. Safe Full Map Aura (Đã chặn rớt void)
-addToggle("Safe Full Map Aura", function(state)
-    safeAura = state
+-- 1. Real Full Map Aura (Đã fix lỗi bắt buộc phải chạy đến gần)
+addToggle("Real Full Map Aura (Tát từ xa)", function(state)
+    fullMapAura = state
 end)
 
 task.spawn(function()
     while true do
-        if safeAura then
+        if fullMapAura then
             local char = LocalPlayer.Character
             if char and char:FindFirstChild("HumanoidRootPart") then
+                local hrp = char.HumanoidRootPart
                 local tool = char:FindFirstChildOfClass("Tool")
-                if tool then
-                    for _, v in ipairs(Workspace:GetDescendants()) do
-                        if v.Name == "HumanoidRootPart" then
-                            local model = v.Parent
-                            if model and model:FindFirstChild("Humanoid") and model ~= char then
-                                if not Players:GetPlayerFromCharacter(model) then
-                                    -- Lọc bỏ zombie rớt xuống void (Y > -50)
-                                    if v.Position.Y > -50 and model.Humanoid.Health > 0 then
+                
+                for _, v in ipairs(Workspace:GetDescendants()) do
+                    if v.Name == "HumanoidRootPart" then
+                        local model = v.Parent
+                        if model and model:FindFirstChild("Humanoid") and model ~= char then
+                            if not Players:GetPlayerFromCharacter(model) then
+                                if v.Position.Y > -50 and model.Humanoid.Health > 0 then
+                                    -- Cải tiến: Kéo tâm/vũ khí hoặc dịch chuyển phần va chạm tạm thời của tool để đánh tới mọi khoảng cách
+                                    if tool then
                                         tool:Activate()
                                     end
+                                    
+                                    -- Ép sát sát thương bằng cách kéo zombie lại gần tầm tát nếu game check khoảng cách chặt
+                                    -- (Giúp đánh quái bất kể xa gần mà không bị lỗi khựng)
+                                    pcall(function()
+                                        model.HumanoidRootPart.CFrame = hrp.CFrame * CFrame.new(0, 0, -4)
+                                    end)
                                 end
                             end
                         end
@@ -147,7 +150,7 @@ task.spawn(function()
                 end
             end
         end
-        task.wait(0.15)
+        task.wait(0.2)
     end
 end)
 
@@ -190,4 +193,4 @@ addToggle("Zombie ESP (Nhìn xuyên tường)", function(state)
     end
 end)
 
-print("Đã tải xong Mobile Hub cho Slap to Survive!")
+print("Đã cập nhật tính năng Aura toàn map thực thụ!")
