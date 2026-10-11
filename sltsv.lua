@@ -1,4 +1,4 @@
--- [[ SLAP TO SURVIVE - FIXED UI & ZOMBIE AURA (MOBILE) ]] --
+-- [[ SLAP TO SURVIVE - PERFECT TARGET AURA (MOBILE) ]] --
 local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
@@ -56,7 +56,7 @@ Title.Parent = MainFrame
 Title.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
 Title.Size = UDim2.new(1, 0, 0, 40)
 Title.Font = Enum.Font.GothamBold
-Title.Text = "  Slap to Survive [Fixed Hub]"
+Title.Text = "  Slap to Survive [Perfect Clean Hub]"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.TextSize = 14
 Title.TextXAlignment = Enum.TextXAlignment.Left
@@ -78,7 +78,6 @@ UIListLayout.Parent = Container
 UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 UIListLayout.Padding = UDim.new(0, 10)
 
--- Hàm tạo nút tính năng chuẩn cú pháp
 local function addToggle(text, callback)
     local Btn = Instance.new("TextButton")
     Btn.Parent = Container
@@ -110,7 +109,7 @@ local function addToggle(text, callback)
     end)
 end
 
--- Bộ lọc thông minh loại bỏ hoàn toàn NPC Shop và hình nộm cố định
+-- Bộ lọc cực kỳ khắt khe: Loại bỏ NPC Shop, hình nộm sảnh và các vật thể cố định
 local function isValidZombie(model)
     if not model:IsA("Model") then return false end
     if model == LocalPlayer.Character then return false end
@@ -122,17 +121,26 @@ local function isValidZombie(model)
 
     local name = model.Name:lower()
     
-    -- Chặn từ khóa shop, npc, dummy, test
-    if name:find("shop") or name:find("store") or name:find("dealer") or name:find("merchant") or name:find("npc") or name:find("dummy") or name:find("test") then
+    -- Chặn các từ khóa liên quan đến shop, npc, dummy, test, hoặc các model đứng ở khu vực sảnh
+    if name:find("shop") or name:find("store") or name:find("dealer") or name:find("merchant") or name:find("npc") or name:find("dummy") or name:find("test") or name:find("target") then
         return false
     end
 
-    -- Bỏ qua các đối tượng đứng cố định (WalkSpeed = 0 như hình nộm tĩnh bên cột)
+    -- CHẶN CON HÌNH NỘM CỐ ĐỊNH Ở CỘT: Dựa vào tọa độ hoặc trạng thái đứng im (WalkSpeed = 0 hoặc không thay đổi vị trí)
+    -- Hầu hết các con hình nộm test ở sảnh có WalkSpeed bằng 0 hoặc không di chuyển.
     if humanoid.WalkSpeed == 0 then
         return false
     end
 
-    if humanoid.Health <= 0 or hrp.Position.Y < -50 then
+    -- Kiểm tra vùng tọa độ khu vực sảnh chờ (tránh quét nhầm các vật thể quanh khu vực giữa map/shop)
+    -- Nếu vị trí nằm sát khu vực trung tâm sảnh, loại bỏ ngay lập tức
+    local pos = hrp.Position
+    -- Vùng sảnh thường có tọa độ X, Z quanh một khoảng cố định và Y tương đương mặt sàn shop
+    if math.abs(pos.X) < 15 and math.abs(pos.Z) < 15 and pos.Y < 10 then
+        return false
+    end
+
+    if humanoid.Health <= 0 or pos.Y < -50 then
         return false
     end
 
@@ -161,7 +169,7 @@ task.spawn(function()
                         local targetHrp = v.HumanoidRootPart
                         local humanoid = v.Humanoid
                         
-                        -- Lướt lên đầu zombie thật, hướng mặt xuống 45 độ
+                        -- Lướt lên đầu zombie thật ngoài bãi chiến đấu
                         local targetPos = targetHrp.Position + Vector3.new(0, 8, 0)
                         hrp.CFrame = CFrame.new(targetPos, targetHrp.Position) * CFrame.Angles(math.rad(45), 0, 0)
                         
@@ -205,8 +213,8 @@ addToggle("Float Above (Bay lơ lửng trên không)", function(state)
     end
 end)
 
--- 3. ESP chuẩn xác
-addToggle("Zombies ESP (Nhìn xuyên tường)", function(state)
+-- 3. ESP chuẩn xác (chỉ nhận diện zombie thật ngoài bãi)
+addToggle("Zombies ESP (Chỉ tô màu quái)", function(state)
     espEnabled = state
     for _, v in ipairs(Workspace:GetDescendants()) do
         if isValidZombie(v) then
@@ -224,4 +232,4 @@ addToggle("Zombies ESP (Nhìn xuyên tường)", function(state)
     end
 end)
 
-print("Đã tải thành công script hoàn chỉnh!")
+print("Đã cập nhật bộ lọc chặn hình nộm sảnh thành công!")
