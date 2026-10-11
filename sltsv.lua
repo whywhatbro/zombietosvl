@@ -1,4 +1,4 @@
--- [[ SLAP TO SURVIVE - ZONE FILTER AURA (MOBILE) ]] --
+-- [[ SLAP TO SURVIVE - FIXED UI & ZOMBIE AURA (MOBILE) ]] --
 local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
@@ -56,7 +56,7 @@ Title.Parent = MainFrame
 Title.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
 Title.Size = UDim2.new(1, 0, 0, 40)
 Title.Font = Enum.Font.GothamBold
-Title.Text = "  Slap to Survive [Zone Clean Aura]"
+Title.Text = "  Slap to Survive [Fixed Hub]"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.TextSize = 14
 Title.TextXAlignment = Enum.TextXAlignment.Left
@@ -78,13 +78,13 @@ UIListLayout.Parent = Container
 UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 UIListLayout.Padding = UDim.new(0, 10)
 
+-- Hàm tạo nút tính năng chuẩn cú pháp
 local function addToggle(text, callback)
     local Btn = Instance.new("TextButton")
     Btn.Parent = Container
     Btn.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
     Btn.Size = UDim2.new(1, 0, 0, 45)
     Btn.Font = Enum.Font.GothamMedium
-    Btn.Text = "  " .. text + " [ TẮT ]" -- sửa text an toàn
     Btn.Text = "  " .. text .. " [ TẮT ]"
     Btn.TextColor3 = Color3.fromRGB(200, 200, 200)
     Btn.TextSize = 13
@@ -110,7 +110,7 @@ local function addToggle(text, callback)
     end)
 end
 
--- Bộ lọc thông minh kèm kiểm tra vùng an toàn (Shop Area)
+-- Bộ lọc thông minh loại bỏ hoàn toàn NPC Shop và hình nộm cố định
 local function isValidZombie(model)
     if not model:IsA("Model") then return false end
     if model == LocalPlayer.Character then return false end
@@ -127,9 +127,7 @@ local function isValidZombie(model)
         return false
     end
 
-    -- LOẠI BỎ KHU VỰC QUẦY SHOP VÀ CỘT XUNG QUANH (Dựa trên tọa độ cố định của khu shop trong map)
-    -- Thường khu vực shop nằm ở giữa/đầu map với tầm bán kính nhất định. Ta có thể chặn nếu đứng quá gần tọa độ trung tâm shop.
-    -- Hoặc kiểm tra xem có đứng yên một chỗ hay không (WalkSpeed == 0 hoặc không di chuyển)
+    -- Bỏ qua các đối tượng đứng cố định (WalkSpeed = 0 như hình nộm tĩnh bên cột)
     if humanoid.WalkSpeed == 0 then
         return false
     end
@@ -145,8 +143,8 @@ local voidAura = false
 local floatAbove = false
 local espEnabled = false
 
--- 1. Zone Clean Void Aura
-addToggle("Zone Clean Aura (Chỉ tát quái ngoài bãi)", function(state)
+-- 1. Void Angle Aura
+addToggle("Void Angle Aura (Tát hất xuống vực)", function(state)
     voidAura = state
 end)
 
@@ -163,7 +161,7 @@ task.spawn(function()
                         local targetHrp = v.HumanoidRootPart
                         local humanoid = v.Humanoid
                         
-                        -- Lướt lên đầu zombie thật ngoài bãi chiến đấu
+                        -- Lướt lên đầu zombie thật, hướng mặt xuống 45 độ
                         local targetPos = targetHrp.Position + Vector3.new(0, 8, 0)
                         hrp.CFrame = CFrame.new(targetPos, targetHrp.Position) * CFrame.Angles(math.rad(45), 0, 0)
                         
@@ -208,7 +206,7 @@ addToggle("Float Above (Bay lơ lửng trên không)", function(state)
 end)
 
 -- 3. ESP chuẩn xác
-addToggle("Zombies ESP (Chỉ tô màu quái)", function(state)
+addToggle("Zombies ESP (Nhìn xuyên tường)", function(state)
     espEnabled = state
     for _, v in ipairs(Workspace:GetDescendants()) do
         if isValidZombie(v) then
@@ -226,4 +224,4 @@ addToggle("Zombies ESP (Chỉ tô màu quái)", function(state)
     end
 end)
 
-print("Đã cập nhật bộ lọc chống hình nộm dummy thành công!")
+print("Đã tải thành công script hoàn chỉnh!")
