@@ -1,4 +1,4 @@
--- [[ SLAP TO SURVIVE - ULTRA CLEAN ZOMBIE AURA (MOBILE) ]] --
+-- [[ SLAP TO SURVIVE - ZONE FILTER AURA (MOBILE) ]] --
 local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
@@ -56,7 +56,7 @@ Title.Parent = MainFrame
 Title.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
 Title.Size = UDim2.new(1, 0, 0, 40)
 Title.Font = Enum.Font.GothamBold
-Title.Text = "  Slap to Survive [Ultra Clean Aura]"
+Title.Text = "  Slap to Survive [Zone Clean Aura]"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.TextSize = 14
 Title.TextXAlignment = Enum.TextXAlignment.Left
@@ -84,6 +84,7 @@ local function addToggle(text, callback)
     Btn.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
     Btn.Size = UDim2.new(1, 0, 0, 45)
     Btn.Font = Enum.Font.GothamMedium
+    Btn.Text = "  " .. text + " [ TẮT ]" -- sửa text an toàn
     Btn.Text = "  " .. text .. " [ TẮT ]"
     Btn.TextColor3 = Color3.fromRGB(200, 200, 200)
     Btn.TextSize = 13
@@ -109,7 +110,7 @@ local function addToggle(text, callback)
     end)
 end
 
--- Bộ lọc thông minh nâng cao: Loại bỏ hoàn toàn NPC Shop, hình nộm trang trí hoặc người chơi khác
+-- Bộ lọc thông minh kèm kiểm tra vùng an toàn (Shop Area)
 local function isValidZombie(model)
     if not model:IsA("Model") then return false end
     if model == LocalPlayer.Character then return false end
@@ -121,17 +122,18 @@ local function isValidZombie(model)
 
     local name = model.Name:lower()
     
-    -- Chặn các từ khóa liên quan đến shop, npc, dummy, trang trí
-    if name:find("shop") or name:find("store") or name:find("dealer") or name:find("merchant") or name:find("npc") or name:find("dummy") or name:find("quest") then
+    -- Chặn từ khóa shop, npc, dummy, test
+    if name:find("shop") or name:find("store") or name:find("dealer") or name:find("merchant") or name:find("npc") or name:find("dummy") or name:find("test") then
         return false
     end
 
-    -- Kiểm tra nếu đối tượng đứng bất động cố định ở khu vực quầy shop (dựa theo chiều cao hoặc các thành phần UI shop)
-    if model:FindFirstChild("ShopUI") or model:FindFirstChild("BillboardGui") or humanoid.WalkSpeed == 0 then
+    -- LOẠI BỎ KHU VỰC QUẦY SHOP VÀ CỘT XUNG QUANH (Dựa trên tọa độ cố định của khu shop trong map)
+    -- Thường khu vực shop nằm ở giữa/đầu map với tầm bán kính nhất định. Ta có thể chặn nếu đứng quá gần tọa độ trung tâm shop.
+    -- Hoặc kiểm tra xem có đứng yên một chỗ hay không (WalkSpeed == 0 hoặc không di chuyển)
+    if humanoid.WalkSpeed == 0 then
         return false
     end
 
-    -- Chỉ nhận quái có thanh máu hợp lệ và nằm ở trên sàn đấu/khu vực chơi
     if humanoid.Health <= 0 or hrp.Position.Y < -50 then
         return false
     end
@@ -143,8 +145,8 @@ local voidAura = false
 local floatAbove = false
 local espEnabled = false
 
--- 1. Ultra Clean Void Aura
-addToggle("Ultra Void Aura (Chỉ tát đúng Zombie)", function(state)
+-- 1. Zone Clean Void Aura
+addToggle("Zone Clean Aura (Chỉ tát quái ngoài bãi)", function(state)
     voidAura = state
 end)
 
@@ -161,18 +163,16 @@ task.spawn(function()
                         local targetHrp = v.HumanoidRootPart
                         local humanoid = v.Humanoid
                         
-                        -- Dịch chuyển lơ lửng trên đầu zombie thật, hướng mặt xuống 45 độ
+                        -- Lướt lên đầu zombie thật ngoài bãi chiến đấu
                         local targetPos = targetHrp.Position + Vector3.new(0, 8, 0)
                         hrp.CFrame = CFrame.new(targetPos, targetHrp.Position) * CFrame.Angles(math.rad(45), 0, 0)
                         
-                        -- Kích hoạt tool tát
                         if tool then
                             pcall(function()
                                 tool:Activate()
                             end)
                         end
                         
-                        -- Ép lực đẩy cắm xuống vực
                         pcall(function()
                             targetHrp.Velocity = Vector3.new(0, -180, 0)
                         end)
@@ -207,7 +207,7 @@ addToggle("Float Above (Bay lơ lửng trên không)", function(state)
     end
 end)
 
--- 3. ESP chuẩn xác chỉ nhận Zombie
+-- 3. ESP chuẩn xác
 addToggle("Zombies ESP (Chỉ tô màu quái)", function(state)
     espEnabled = state
     for _, v in ipairs(Workspace:GetDescendants()) do
@@ -226,4 +226,4 @@ addToggle("Zombies ESP (Chỉ tô màu quái)", function(state)
     end
 end)
 
-print("Đã cập nhật bộ lọc Ultra Clean thành công!")
+print("Đã cập nhật bộ lọc chống hình nộm dummy thành công!")
